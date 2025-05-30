@@ -1,17 +1,22 @@
+
 [build-system]
 requires = ["setuptools>=61.0"]
 build-backend = "setuptools.build_meta"
 
 [project]
-# Package name, aligning with the repository and command
 name = "prompt-gen"
-version = "0.1.0" # Increment this as you make changes and release new versions
+version = "0.1.0"
 description = "Interactive TUI to generate project overviews for LLM prompting. Select files/dirs, get structured output."
 readme = "README.md"
 authors = [
-  { name = "Your Name", email = "you@example.com" }, # <<< UPDATE THIS
+  { name = "Alireza Bazarghan", email = "bazarghan80@gmail.com" }, # <<< UPDATE THIS
 ]
-license = { text = "MIT License" } # Ensure this matches your actual license choice
+# Updated license specification to use SPDX identifier string
+license = {text = "MIT"} # For setuptools < 77.0.0
+# If using setuptools >= 77.0.0, you can use:
+# license = "MIT" 
+# license-files = ["LICENSE.txt"] # Optional: if you have a LICENSE.txt file
+
 classifiers = [
     "Development Status :: 4 - Beta",
     "Programming Language :: Python :: 3",
@@ -21,7 +26,7 @@ classifiers = [
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
-    "License :: OSI Approved :: MIT License", 
+    # "License :: OSI Approved :: MIT License", # This classifier is deprecated in favor of the SPDX string
     "Operating System :: OS Independent",
     "Environment :: Console",
     "Environment :: Console :: Curses",
@@ -37,11 +42,21 @@ dependencies = [
 ]
 
 [project.scripts]
-# The command-line script will now be 'prompt-gen'
 prompt-gen = "main:main"
 
 [project.urls]
 "Homepage" = "https://github.com/bazarghan/prompt-gen"
 "Repository" = "https://github.com/bazarghan/prompt-gen"
 "Bug Tracker" = "https://github.com/bazarghan/prompt-gen/issues"
+
+# Explicitly tell setuptools which modules to include
+[tool.setuptools]
+py-modules = [
+    "main",
+    "tui",
+    "config",
+    "file_operations",
+    "keybindings",
+    "output_generator"
+]
 
