@@ -3,8 +3,41 @@
 import curses
 import json
 import os
+import platform  # To detect OS
 
-DEFAULT_KEYBIND_FILE = "keybinds.json"
+# --- Configuration File Path Logic ---
+APP_NAME = "prompt-gen"
+
+
+def get_config_dir():
+    """Gets the platform-specific configuration directory for the application."""
+    if platform.system() == "Windows":
+        # APPDATA is typically C:\Users\<user>\AppData\Roaming
+        app_data_dir = os.getenv("APPDATA")
+        if app_data_dir:
+            return os.path.join(app_data_dir, APP_NAME)
+        else:
+            # Fallback if APPDATA is not set (less common)
+            return os.path.join(os.path.expanduser("~"), f".{APP_NAME}")
+    elif platform.system() == "Darwin":  # macOS
+        return os.path.join(
+            os.path.expanduser("~"), "Library", "Application Support", APP_NAME
+        )
+    else:  # Linux and other Unix-like
+        # Follow XDG Base Directory Specification if XDG_CONFIG_HOME is set
+        xdg_config_home = os.getenv("XDG_CONFIG_HOME")
+        if xdg_config_home:
+            return os.path.join(xdg_config_home, APP_NAME)
+        else:
+            # Default to ~/.config/
+            return os.path.join(os.path.expanduser("~"), ".config", APP_NAME)
+
+
+CONFIG_DIR = get_config_dir()
+DEFAULT_KEYBIND_FILE_NAME = "keybinds.json"
+KEYBIND_FILE_PATH = os.path.join(CONFIG_DIR, DEFAULT_KEYBIND_FILE_NAME)
+# --- End Configuration File Path Logic ---
+
 
 # Define actions as constants for internal use
 ACTION_QUIT = "QUIT"
@@ -15,48 +48,42 @@ ACTION_PARENT_DIRECTORY = "PARENT_DIRECTORY"
 ACTION_TOGGLE_SELECT = "TOGGLE_SELECT"
 ACTION_GENERATE_OUTPUT = "GENERATE_OUTPUT"
 
-# Default keybindings if keybinds.json is missing or invalid
 DEFAULT_KEYBINDS_CONFIG = {
     ACTION_QUIT: ["q"],
     ACTION_NAVIGATE_UP: ["KEY_UP", "k"],
     ACTION_NAVIGATE_DOWN: ["KEY_DOWN", "j"],
-    ACTION_ENTER_DIRECTORY: ["KEY_ENTER", "\n", "l"],
-    ACTION_PARENT_DIRECTORY: ["h"],  # Handle k and K after Alt
+    ACTION_ENTER_DIRECTORY: ["KEY_RIGHT", "KEY_ENTER", "\n", "l"],
+    ACTION_PARENT_DIRECTORY: ["ALT+k", "ALT+K"],
     ACTION_TOGGLE_SELECT: [" "],
     ACTION_GENERATE_OUTPUT: ["g"],
 }
 
-# Map special key strings from JSON to actual curses constants
 CURSES_KEY_MAP = {
     "KEY_UP": curses.KEY_UP,
     "KEY_DOWN": curses.KEY_DOWN,
-    "KEY_LEFT": curses.KEY_LEFT,  # Add if you plan to use it
+    "KEY_LEFT": curses.KEY_LEFT,
     "KEY_RIGHT": curses.KEY_RIGHT,
     "KEY_ENTER": curses.KEY_ENTER,
-    # Add other curses.KEY_ constants if needed, e.g. curses.KEY_BACKSPACE
 }
 
-# These dictionaries will be populated by load_keybindings()
-# and used by tui.py
-KEY_ACTIONS = {}  # Maps direct key_code -> ACTION_CONSTANT
-ALT_KEY_ACTIONS = {}  # Maps char_code_after_alt -> ACTION_CONSTANT
-LOADED_CONFIG_FOR_DISPLAY = {}  # Stores the raw loaded strings for display purposes
+KEY_ACTIONS = {}
+ALT_KEY_ACTIONS = {}
+LOADED_CONFIG_FOR_DISPLAY = {}
 
 
 def _populate_key_maps(config_to_use):
-    """Helper function to process the configuration into usable key maps."""
     KEY_ACTIONS.clear()
     ALT_KEY_ACTIONS.clear()
-    LOADED_CONFIG_FOR_DISPLAY.clear()  # Clear and repopulate for display
+    LOADED_CONFIG_FOR_DISPLAY.clear()
 
     for action, keys_list in config_to_use.items():
-        if action not in DEFAULT_KEYBINDS_CONFIG:  # Ensure action is known
+        if action not in DEFAULT_KEYBINDS_CONFIG:
             print(
                 f"Warning: Unknown action '{action}' in loaded keybindings. Ignoring."
             )
             continue
 
-        LOADED_CONFIG_FOR_DISPLAY[action] = keys_list  # Store for display
+        LOADED_CONFIG_FOR_DISPLAY[action] = keys_list
 
         for key_specifier in keys_list:
             if not isinstance(key_specifier, str):
@@ -67,10 +94,8 @@ def _populate_key_maps(config_to_use):
 
             key_spec_upper = key_specifier.upper()
             if key_spec_upper.startswith("ALT+"):
-                if len(key_specifier) > 4:  # Must have a character after "ALT+"
-                    char_after_alt = key_specifier[
-                        4:
-                    ]  # Get the actual character (case-sensitive)
+                if len(key_specifier) > 4:
+                    char_after_alt = key_specifier[4:]
                     ALT_KEY_ACTIONS[ord(char_after_alt)] = action
                 else:
                     print(
@@ -78,7 +103,7 @@ def _populate_key_maps(config_to_use):
                     )
             elif key_spec_upper in CURSES_KEY_MAP:
                 KEY_ACTIONS[CURSES_KEY_MAP[key_spec_upper]] = action
-            elif len(key_specifier) == 1:  # Regular character key (like 'q', ' ', '\n')
+            elif len(key_specifier) == 1:
                 KEY_ACTIONS[ord(key_specifier)] = action
             else:
                 print(
@@ -86,70 +111,74 @@ def _populate_key_maps(config_to_use):
                 )
 
 
-def load_keybindings(filepath=DEFAULT_KEYBIND_FILE):
-    """Loads keybindings from the specified file or uses defaults."""
+def load_keybindings():  # Removed filepath argument, now uses global KEYBIND_FILE_PATH
+    """Loads keybindings from the user's config directory or uses defaults."""
     config_source = DEFAULT_KEYBINDS_CONFIG.copy()
     created_default_file = False
+    filepath_to_load = KEYBIND_FILE_PATH  # Use the determined config path
 
-    if os.path.exists(filepath):
+    if os.path.exists(filepath_to_load):
         try:
-            with open(filepath, "r", encoding="utf-8") as f:
+            with open(filepath_to_load, "r", encoding="utf-8") as f:
                 loaded_config = json.load(f)
 
             if not isinstance(loaded_config, dict):
                 print(
-                    f"Warning: '{filepath}' does not contain a valid dictionary. Using default keybindings."
+                    f"Warning: '{filepath_to_load}' does not contain a valid dictionary. Using default keybindings."
                 )
             else:
-                # Merge: User's config updates defaults.
-                # This way, if user deletes an action from JSON, it still falls back to default.
-                # And if we add new actions to DEFAULT_KEYBINDS_CONFIG, they'll be available.
                 merged_config = DEFAULT_KEYBINDS_CONFIG.copy()
                 for action, keys in loaded_config.items():
-                    if action in merged_config:  # Only update known actions
+                    if action in merged_config:
                         if isinstance(keys, list):
                             merged_config[action] = keys
                         else:
                             print(
-                                f"Warning: Value for action '{action}' in '{filepath}' is not a list. Using default for this action."
+                                f"Warning: Value for action '{action}' in '{filepath_to_load}' is not a list. Using default for this action."
                             )
                     else:
                         print(
-                            f"Warning: Unknown action '{action}' in '{filepath}'. Ignoring."
+                            f"Warning: Unknown action '{action}' in '{filepath_to_load}'. Ignoring."
                         )
                 config_source = merged_config
-                print(f"Loaded keybindings from '{filepath}'.")
+                print(f"Loaded keybindings from '{filepath_to_load}'.")
 
         except json.JSONDecodeError:
             print(
-                f"Error: Could not decode JSON from '{filepath}'. Using default keybindings."
+                f"Error: Could not decode JSON from '{filepath_to_load}'. Using default keybindings."
             )
         except Exception as e:
-            print(f"Error loading '{filepath}': {e}. Using default keybindings.")
+            print(
+                f"Error loading '{filepath_to_load}': {e}. Using default keybindings."
+            )
     else:
         print(
-            f"'{filepath}' not found. Using default keybindings and creating a default file."
+            f"Keybinding file '{filepath_to_load}' not found. Using default keybindings and creating a default file."
         )
         try:
-            with open(filepath, "w", encoding="utf-8") as f:
+            # Ensure the configuration directory exists
+            os.makedirs(CONFIG_DIR, exist_ok=True)
+            with open(filepath_to_load, "w", encoding="utf-8") as f:
                 json.dump(DEFAULT_KEYBINDS_CONFIG, f, indent=2, sort_keys=True)
-            print(f"A default keybinding file has been created at '{filepath}'.")
+            print(
+                f"A default keybinding file has been created at '{filepath_to_load}'."
+            )
             created_default_file = True
         except Exception as e:
-            print(f"Could not create default keybinding file at '{filepath}': {e}")
+            print(
+                f"Could not create default keybinding file at '{filepath_to_load}': {e}"
+            )
 
     _populate_key_maps(config_source)
     if created_default_file:
         print(
-            "Please review the generated 'keybinds.json' and restart the application if you made changes while it was running."
+            f"Please review the generated '{filepath_to_load}' and restart the application if you made changes while it was running."
         )
 
-    # Return the populated maps for the TUI to use
     return KEY_ACTIONS, ALT_KEY_ACTIONS, LOADED_CONFIG_FOR_DISPLAY
 
 
 def get_display_for_action(action_name):
-    """Generates a user-friendly string list of keys for an action, e.g., ['Up', 'k']."""
     if not LOADED_CONFIG_FOR_DISPLAY or action_name not in LOADED_CONFIG_FOR_DISPLAY:
         return []
 
@@ -161,10 +190,9 @@ def get_display_for_action(action_name):
         elif key_spec == " ":
             display_keys.append("Space")
         elif key_spec.upper() in CURSES_KEY_MAP:
-            # e.g., "KEY_UP" -> "Up"
             display_keys.append(key_spec.replace("KEY_", "").capitalize())
         elif key_spec == "\n":
-            display_keys.append("Enter")  # More user-friendly than '\n'
+            display_keys.append("Enter")
         else:
-            display_keys.append(key_spec)  # Regular character
+            display_keys.append(key_spec)
     return display_keys
