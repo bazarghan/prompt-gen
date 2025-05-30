@@ -37,7 +37,6 @@ def _is_path_excluded_for_generation(
 def generate_output_from_selection(
     selection_roots, explicit_exclusions, output_filename="output.txt"
 ):
-    # Get the directory where the script was run from, to make paths relative to it.
     base_run_directory = os.getcwd()
 
     structure_output = []
@@ -81,21 +80,18 @@ def generate_output_from_selection(
             "(Project structure is empty as no selection roots were defined.)\n"
         )
 
-    for sel_root_orig_abs in sorted(list(selection_roots)):  # These are absolute paths
+    for sel_root_orig_abs in sorted(list(selection_roots)):
         sel_root_abs = os.path.normpath(sel_root_orig_abs)
 
         if sel_root_abs in explicit_exclusions:
             continue
 
         is_sel_root_dir = os.path.isdir(sel_root_abs)
-        # Display path for the root in the structure, relative to base_run_directory
         display_sel_root_rel = os.path.relpath(sel_root_abs, base_run_directory)
 
         if sel_root_abs not in paths_added_to_structure_output:
             is_sub_path_of_other_root = False
-            for (
-                processed_r_abs
-            ) in paths_added_to_structure_output:  # processed_r_abs are absolute
+            for processed_r_abs in paths_added_to_structure_output:
                 if os.path.isdir(processed_r_abs) and sel_root_abs.startswith(
                     processed_r_abs + os.sep
                 ):
@@ -108,11 +104,8 @@ def generate_output_from_selection(
             paths_added_to_structure_output.add(sel_root_abs)
 
         if os.path.isfile(sel_root_abs):
-            all_files_to_process_for_content.add(
-                sel_root_orig_abs
-            )  # Store original absolute path for reading
+            all_files_to_process_for_content.add(sel_root_orig_abs)
         elif is_sel_root_dir:
-            # The walk uses absolute paths internally for reliability
             for current_walk_root_abs_orig, dirs, files in os.walk(
                 sel_root_abs, topdown=True
             ):
@@ -134,11 +127,7 @@ def generate_output_from_selection(
                 for d_name in dirs_to_remove:
                     dirs.remove(d_name)
 
-                # Indentation is relative to the displayed top-level root (display_sel_root_rel)
-                # The depth is calculated from the absolute selection root (sel_root_abs)
                 depth = 0
-                # If current_walk_root_abs is sel_root_abs, its children are at depth 1 relative to displayed root
-                # If current_walk_root_abs is a child of sel_root_abs, its children are deeper.
                 if current_walk_root_abs != sel_root_abs:
                     try:
                         if current_walk_root_abs.startswith(sel_root_abs):
@@ -153,25 +142,15 @@ def generate_output_from_selection(
                     except ValueError:
                         depth = 0
 
-                # The first level of items under display_sel_root_rel should have one "    " indent.
-                # If display_sel_root_rel was "foo", then foo/bar.txt is "    ├── bar.txt"
                 indent_for_children_of_current_walk_root = "    " * (depth + 1)
-                # Indent for the current_walk_root directory itself, if it's not the top-level sel_root
                 indent_for_current_walk_root_dir = "    " * depth
 
-                # Add subdirectories to structure
-                # current_walk_root_abs is the directory whose children (dirs and files) we are listing.
-                # If current_walk_root_abs is not sel_root_abs, it needs to be listed itself first.
-                if (
-                    current_walk_root_abs != sel_root_abs
-                ):  # sel_root_abs itself is already listed at top level.
+                if current_walk_root_abs != sel_root_abs:
                     if current_walk_root_abs not in paths_added_to_structure_output:
                         structure_output.append(
                             f"{indent_for_current_walk_root_dir}├── {os.path.basename(current_walk_root_abs)}/\n"
                         )
-                        paths_added_to_structure_output.add(
-                            current_walk_root_abs
-                        )  # Use absolute path for this set
+                        paths_added_to_structure_output.add(current_walk_root_abs)
 
                 for dir_name in sorted(dirs):
                     dir_full_path_abs_orig = os.path.join(
@@ -217,7 +196,6 @@ def generate_output_from_selection(
         for file_path_abs_orig in sorted(list(all_files_to_process_for_content)):
             files_processed_count += 1
             file_ext = os.path.splitext(file_path_abs_orig)[1].lower()
-            # Display path relative to where the script was run
             display_path_rel = os.path.relpath(
                 os.path.abspath(file_path_abs_orig), base_run_directory
             )
@@ -261,15 +239,15 @@ def generate_output_from_selection(
                         f"--- END OF {display_path_rel} (ERROR) ---\n"
                     )
             elif file_ext in config.IGNORE_EXTENSIONS:
-                content_output.append(
-                    f"\n--- File: {display_path_rel} (Content Ignored due to extension: {file_ext}) ---\n"
-                )
+                # This log is now removed for LLM output clarity
+                # content_output.append(
+                #     f"\n--- File: {display_path_rel} (Content Ignored due to extension: {file_ext}) ---\n"
+                # )
+                pass  # Do nothing for ignored extensions in the content section
 
     # --- Summary Section ---
     summary = []
     summary.append("\n\n--- End of Project Overview ---\n")
-    # summary.append(f"Number of files with content included: {files_content_included_count}\n")
-    # summary.append(f"Total files considered for content: {files_processed_count}\n")
 
     try:
         with open(output_filename, "w", encoding="utf-8") as f_out:
