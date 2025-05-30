@@ -1,0 +1,39 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Distribution / packaging (important for setuptools/pyproject.toml)
+build/
+dist/
+*.egg-info/
+wheels/
+pip-wheel-metadata/
+
+# Environments
+.env
+.venv
+env/
+venv/
+ENV/
+
+# Pyre & MyPy
+.pyre/
+.mypy_cache/
+.dmypy.json
+dmypy.json
+
+# Editor directories and files
+.idea/
+.vscode/
+*~
+*.sw[op] # Swap files from vim/neovim
+
+# OS generated files
+.DS_Store
+Thumbs.db
+
+# Application-specific generated files
+output.txt
+
+keybinds.json
