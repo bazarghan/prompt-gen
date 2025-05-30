@@ -11,15 +11,17 @@ The project is hosted at: [github.com/bazarghan/prompt-gen](https://github.com/b
 - **Interactive TUI:** Easily browse and select files/directories using a curses-based interface.
 - **Recursive Selection:** Select a folder to include all its contents.
 - **Granular Exclusion:** Deselect specific sub-folders or files within a selected folder to fine-tune the output.
-- **Customizable Keybindings:** Configure your preferred keys for navigation and actions via a `keybinds.json` file.
+- **Customizable Keybindings:** Configure your preferred keys for navigation and actions via a `keybinds.json` file stored in a user-specific configuration directory.
 - **LLM-Optimized Output:** Generates an `output.txt` with a boilerplate prompt, relative file paths, project structure, and selected file contents.
 - **Cross-Platform:** Works on Linux, macOS, and Windows (requires a compatible terminal for curses).
 - **Configurable Content:** Ignores common binary files, logs, and `node_modules`-like directories by default (configurable in `config.py`).
+- **Theming Support:** Basic color theming via `default_theme.json` to customize the TUI appearance.
 
 ## Prerequisites
 
 - **Python 3:** Version 3.7 or newer is recommended.
 - **pip:** Python's package installer (usually comes with Python).
+- **Windows Users:** You will need to install `windows-curses`: `pip install windows-curses`
 
 ## Installation
 
@@ -46,11 +48,11 @@ The project is hosted at: [github.com/bazarghan/prompt-gen](https://github.com/b
     # On macOS/Linux:
     source .venv/bin/activate
     # On Windows (Command Prompt):
-    # .venv\Scripts\activate.bat
+     .venv\Scripts\activate.bat
     # On Windows (PowerShell):
-    # .venv\Scripts\Activate.ps1
+     .venv\Scripts\Activate.ps1 # You might need to Set-ExecutionPolicy RemoteSigned -Scope CurrentUser
 
-    # Install the tool (and its dependencies, if any were defined)
+    # Install the tool
     pip install .
     ```
 
@@ -62,7 +64,7 @@ The project is hosted at: [github.com/bazarghan/prompt-gen](https://github.com/b
 
 ## Usage
 
-Once installed, the command `prompt-gen` will be available in your terminal.
+Once installed, the command `prompt-gen` will be available in your terminal (ensure your virtual environment is active if you installed it there).
 
 - **Run in the current directory:**
 
@@ -72,12 +74,12 @@ Once installed, the command `prompt-gen` will be available in your terminal.
 
 - **Run with a specific initial path:**
   ```bash
-  prompt-gen/path/to/your/project
+  prompt-gen /path/to/your/project
   ```
 
 The TUI will launch, allowing you to:
 
-- Navigate using the configured keys (defaults: Arrow keys, `k`/`j` for up/down, `l`/Enter for entering directories, `h` for parent directory - check `keybinds.json` for current settings).
+- Navigate using the configured keys (check your `keybinds.json` for current settings).
 - Press `Space` (or configured key) to toggle selection for the highlighted item.
   - Selecting a folder marks it as a "selection root," implicitly selecting all its contents.
   - Pressing `Space` again on a selected item within a root folder will mark it as an "explicit exclusion."
@@ -86,17 +88,26 @@ The TUI will launch, allowing you to:
 
 ## Configuration
 
-### Keybindings
+### Keybindings (`keybinds.json`)
 
 Keybindings are configurable via a `keybinds.json` file.
 
-- When you first run `prompt-gen` in a directory where `keybinds.json` does not exist, a default `keybinds.json` file will be created in that **current working directory**.
+- When you first run `prompt-gen`, if this file does not exist in the application's configuration directory, a default one will be created there.
+- The location of this directory is platform-dependent:
+  - **Linux:** Typically `~/.config/prompt-gen/keybinds.json` (or `$XDG_CONFIG_HOME/prompt-gen/keybinds.json` if `XDG_CONFIG_HOME` is set).
+  - **macOS:** Typically `~/Library/Application Support/prompt-gen/keybinds.json`.
+  - **Windows:** Typically `C:\Users\<YourUser>\AppData\Roaming\prompt-gen\keybinds.json`.
 - You can edit this JSON file to customize the keys for various actions.
 - The TUI will display the currently active keybindings in the instruction bar.
 
-### Content Inclusion/Exclusion
+### Themes (`default_theme.json`)
 
-Default ignored directories, files, and extensions, as well as the max file size for content inclusion, are defined in `config.py`. You can modify this file directly if you need to change these defaults globally for your installation.
+- A `default_theme.json` file is included in the project and loaded by default.
+- To customize the theme, you can modify this file before installation, or if future versions allow, place a custom theme in the configuration directory. Currently, it loads `default_theme.json` from its installation location.
+
+### Content Inclusion/Exclusion (`config.py`)
+
+Default ignored directories, files, and extensions, as well as the max file size for content inclusion, are defined in `config.py`. You can modify this file directly if you need to change these defaults globally for your installation (requires reinstalling if not in editable mode).
 
 ## Output
 
