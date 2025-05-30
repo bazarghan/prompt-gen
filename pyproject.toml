@@ -1,21 +1,16 @@
-
 [build-system]
 requires = ["setuptools>=61.0"]
 build-backend = "setuptools.build_meta"
 
 [project]
 name = "prompt-gen"
-version = "0.1.0"
+version = "0.1.0" 
 description = "Interactive TUI to generate project overviews for LLM prompting. Select files/dirs, get structured output."
 readme = "README.md"
 authors = [
-  { name = "Alireza Bazarghan", email = "bazarghan80@gmail.com" }, # <<< UPDATE THIS
+  { name = "Alireza Bazarghan", email = "bazarghan80@gmail.com" }, # 
 ]
-# Updated license specification to use SPDX identifier string
-license = {text = "MIT"} # For setuptools < 77.0.0
-# If using setuptools >= 77.0.0, you can use:
-# license = "MIT" 
-# license-files = ["LICENSE.txt"] # Optional: if you have a LICENSE.txt file
+license = {text = "MIT"}
 
 classifiers = [
     "Development Status :: 4 - Beta",
@@ -26,7 +21,6 @@ classifiers = [
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
-    # "License :: OSI Approved :: MIT License", # This classifier is deprecated in favor of the SPDX string
     "Operating System :: OS Independent",
     "Environment :: Console",
     "Environment :: Console :: Curses",
@@ -39,6 +33,7 @@ keywords = ["cli", "tui", "curses", "project-overview", "llm-prompt", "developer
 
 dependencies = [
     # curses is part of the Python standard library
+    # For Windows, users will need to manually 'pip install windows-curses'
 ]
 
 [project.scripts]
@@ -57,6 +52,7 @@ py-modules = [
     "config",
     "file_operations",
     "keybindings",
-    "output_generator"
+    "output_generator",
+    "theme_manager"  # <<< ADDED theme_manager HERE
 ]
 
