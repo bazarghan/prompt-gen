@@ -3,9 +3,8 @@ requires = ["setuptools>=61.0"]
 build-backend = "setuptools.build_meta"
 
 [project]
-# This is the name your package will have on PyPI if you publish it.
-# It's also used when installing locally.
-name = "prompt-gen-cli"
+# Package name, aligning with the repository and command
+name = "prompt-gen"
 version = "0.1.0" # Increment this as you make changes and release new versions
 description = "Interactive TUI to generate project overviews for LLM prompting. Select files/dirs, get structured output."
 readme = "README.md"
@@ -14,7 +13,7 @@ authors = [
 ]
 license = { text = "MIT License" } # Ensure this matches your actual license choice
 classifiers = [
-    "Development Status :: 4 - Beta", # Or "3 - Alpha", "5 - Production/Stable"
+    "Development Status :: 4 - Beta",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.7",
     "Programming Language :: Python :: 3.8",
@@ -22,8 +21,8 @@ classifiers = [
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
-    "License :: OSI Approved :: MIT License", # Match your chosen license
-    "Operating System :: OS Independent", # curses might have limitations on pure Windows cmd without WSL/Windows Terminal
+    "License :: OSI Approved :: MIT License", 
+    "Operating System :: OS Independent",
     "Environment :: Console",
     "Environment :: Console :: Curses",
     "Intended Audience :: Developers",
@@ -31,23 +30,18 @@ classifiers = [
     "Topic :: Software Development :: Documentation",
     "Topic :: Text Processing :: Indexing",
 ]
-keywords = ["cli", "tui", "curses", "project-overview", "llm-prompt", "developer-tools", "code-analysis", "context-generator"]
+keywords = ["cli", "tui", "curses", "project-overview", "llm-prompt", "developer-tools", "code-analysis", "context-generator", "prompt-engineering", "promptgen"]
 
-# Add other dependencies here if your project uses any external libraries.
-# 'curses' is part of the Python standard library, so it's not listed.
 dependencies = [
-    # e.g., "requests>=2.20.0",
+    # curses is part of the Python standard library
 ]
 
-# This section defines the command-line script(s) that will be created.
 [project.scripts]
-# "command-name = module_name:function_name"
-# This will create a command named 'project-lister'.
-# When executed, it will run the 'main' function in your 'main.py' module.
-project-lister = "main:main"
+# The command-line script will now be 'prompt-gen'
+prompt-gen = "main:main"
 
-# URLs related to your project
 [project.urls]
 "Homepage" = "https://github.com/bazarghan/prompt-gen"
 "Repository" = "https://github.com/bazarghan/prompt-gen"
 "Bug Tracker" = "https://github.com/bazarghan/prompt-gen/issues"
+

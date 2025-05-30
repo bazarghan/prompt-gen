@@ -62,17 +62,17 @@ The project is hosted at: [github.com/bazarghan/prompt-gen](https://github.com/b
 
 ## Usage
 
-Once installed, the command `project-lister` will be available in your terminal.
+Once installed, the command `prompt-gen` will be available in your terminal.
 
 - **Run in the current directory:**
 
   ```bash
-  project-lister
+  prompt-gen
   ```
 
 - **Run with a specific initial path:**
   ```bash
-  project-lister /path/to/your/project
+  prompt-gen /path/to/your/project
   ```
 
 The TUI will launch, allowing you to:
@@ -90,7 +90,7 @@ The TUI will launch, allowing you to:
 
 Keybindings are configurable via a `keybinds.json` file.
 
-- When you first run `project-lister` in a directory where `keybinds.json` does not exist, a default `keybinds.json` file will be created in that **current working directory**.
+- When you first run `prompt-gen` in a directory where `keybinds.json` does not exist, a default `keybinds.json` file will be created in that **current working directory**.
 - You can edit this JSON file to customize the keys for various actions.
 - The TUI will display the currently active keybindings in the instruction bar.
 
@@ -100,7 +100,7 @@ Default ignored directories, files, and extensions, as well as the max file size
 
 ## Output
 
-The tool generates an `output.txt` file in the **current working directory** from where `project-lister` was executed. This file includes:
+The tool generates an `output.txt` file in the **current working directory** from where `prompt-gen` was executed. This file includes:
 
 1.  A boilerplate prompt explaining the content to an LLM.
 2.  A list of the selection roots and explicit exclusions (using relative paths).
