@@ -77,7 +77,7 @@ Once installed, the command `project-lister` will be available in your terminal.
 
 The TUI will launch, allowing you to:
 
-- Navigate using the configured keys (defaults: Arrow keys, `k`/`j` for up/down, `l`/Enter for entering directories, `Alt+k` or `h` for parent directory - check `keybinds.json` for current settings).
+- Navigate using the configured keys (defaults: Arrow keys, `k`/`j` for up/down, `l`/Enter for entering directories, `h` for parent directory - check `keybinds.json` for current settings).
 - Press `Space` (or configured key) to toggle selection for the highlighted item.
   - Selecting a folder marks it as a "selection root," implicitly selecting all its contents.
   - Pressing `Space` again on a selected item within a root folder will mark it as an "explicit exclusion."
@@ -122,4 +122,4 @@ Please ensure your code follows general Python best practices.
 
 ## License
 
-This project is licensed under the MIT License - see the `LICENSE` file (if you add one) or refer to the license specified in `pyproject.toml`.
+This project is licensed under the MIT License - see the license specified in `pyproject.toml`.
