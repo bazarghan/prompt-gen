@@ -3,25 +3,15 @@
 import curses
 import os
 
-import keybindings  # Import the new module
+import keybindings
+import theme_manager  # Import the new theme manager
 from file_operations import get_dir_contents
 from output_generator import generate_output_from_selection
 
 
-# --- Helper function to determine effective selection ---
+# --- Helper function to determine effective selection (from previous step) ---
 def is_effectively_selected(item_path, selection_roots, explicit_exclusions):
-    """
-    Determines if an item should be considered selected.
-    An item is selected if:
-    1. It is itself a selection_root.
-    2. Or, an ancestor is a selection_root AND neither the item nor any ancestor
-       between it and that selection_root is in explicit_exclusions.
-    """
-    # Normalize path for consistent comparisons
     norm_item_path = os.path.normpath(item_path)
-
-    # Check if the path itself or any ancestor is a selection root
-    # Iterates from item_path upwards to find the closest (or self) selection root.
     current_path_segment = norm_item_path
     selected_ancestor_root = None
     while True:
@@ -29,46 +19,26 @@ def is_effectively_selected(item_path, selection_roots, explicit_exclusions):
             selected_ancestor_root = current_path_segment
             break
         parent = os.path.dirname(current_path_segment)
-        if parent == current_path_segment:  # Reached filesystem root
+        if parent == current_path_segment:
             break
         current_path_segment = parent
-
     if selected_ancestor_root is None:
-        return False  # Not selected via any root
-
-    # If item_path is the selection_root itself, it's selected.
-    # (Toggle logic ensures a root isn't also an active exclusion for itself).
-    if (
-        norm_item_path == selected_ancestor_root
-    ):  # norm_item_path in selection_roots also works
+        return False
+    if norm_item_path == selected_ancestor_root:
         return True
-
-    # Now check for exclusions on the path from item_path up to (but not including) selected_ancestor_root
     current_path_segment = norm_item_path
     while current_path_segment != selected_ancestor_root:
         if current_path_segment in explicit_exclusions:
-            return False  # Excluded at this level
-
-        parent = os.path.dirname(current_path_segment)
-        if (
-            parent == current_path_segment
-        ):  # Safety break, unexpected if selected_ancestor_root was found
             return False
-        if not parent.startswith(
-            os.path.dirname(selected_ancestor_root)
-        ):  # Optimization/safety
-            # This check ensures we don't go "above" the selected_ancestor_root's parent
-            # especially if selected_ancestor_root is deep. If parent is shallower than selected_ancestor_root's dir, something is wrong or we are done.
-            # A simpler check: ensure parent is still a sub-path of selected_ancestor_root's parent, or selected_ancestor_root itself
-            if not current_path_segment.startswith(
-                selected_ancestor_root
-            ):  # ensure current is under root
-                break  # stop if current path is no longer under the identified root
-        current_path_segment = parent
-        if not current_path_segment:  # Reached very top
+        parent = os.path.dirname(current_path_segment)
+        if parent == current_path_segment:
+            return False
+        if not current_path_segment.startswith(selected_ancestor_root):
             break
-
-    return True  # Implicitly selected, not excluded along the path from root.
+        current_path_segment = parent
+        if not current_path_segment:
+            break
+    return True
 
 
 def display_files(
@@ -76,16 +46,29 @@ def display_files(
     current_path,
     items,
     current_selection_idx,
-    selection_roots,  # CHANGED
-    explicit_exclusions,  # NEW
+    selection_roots,
+    explicit_exclusions,
     error_message=None,
 ):
-    stdscr.clear()
     h, w = stdscr.getmaxyx()
 
-    header = f"Interactive Project Lister - Path: {current_path}"
-    stdscr.addstr(0, 0, header[: w - 1], curses.A_REVERSE)
+    # Apply background for the whole screen (important for consistent theming)
+    # The bkgd call also clears the screen with the new background attribute
+    stdscr.bkgd(" ", theme_manager.get_pair("app_background"))
+    stdscr.erase()  # Ensure screen is cleared with new background
 
+    # --- Header ---
+    header_pair = theme_manager.get_pair("header")
+    header_text = f"Interactive Project Lister - Path: {current_path}"
+    try:
+        stdscr.addstr(
+            0, 0, header_text[: w - 1].ljust(w - 1), header_pair | curses.A_BOLD
+        )
+    except curses.error:
+        pass  # Terminal too small
+
+    # --- Instructions ---
+    instr_pair = theme_manager.get_pair("instructions")
     nav_up_keys = "/".join(
         keybindings.get_display_for_action(keybindings.ACTION_NAVIGATE_UP)
     )
@@ -105,7 +88,6 @@ def display_files(
         keybindings.get_display_for_action(keybindings.ACTION_GENERATE_OUTPUT)
     )
     quit_keys = "/".join(keybindings.get_display_for_action(keybindings.ACTION_QUIT))
-
     instructions_parts = [
         f"[{nav_up_keys}/{nav_down_keys}] Nav",
         f"[{enter_keys}] Enter",
@@ -114,24 +96,39 @@ def display_files(
         f"[{generate_keys}] Gen",
         f"[{quit_keys}] Quit",
     ]
-    instructions = " | ".join(instructions_parts)
+    instructions_text = " | ".join(instructions_parts)
     instruction_line = h - 2
     try:
-        if len(instructions) >= w:
-            stdscr.addstr(instruction_line, 0, instructions[: w - 1])
-        else:
-            stdscr.addstr(instruction_line, 0, instructions)
+        if instruction_line > 0:  # Ensure there's space for instructions
+            stdscr.addstr(
+                instruction_line, 0, instructions_text[: w - 1].ljust(w - 1), instr_pair
+            )
     except curses.error:
         pass
 
+    # --- Error Message ---
+    error_start_line = 1
     if error_message:
-        stdscr.addstr(1, 0, f"Error: {error_message}"[: w - 1], curses.color_pair(1))
-        start_line = 2
+        error_pair = theme_manager.get_pair("error_message")
+        try:
+            stdscr.addstr(
+                error_start_line,
+                0,
+                f"Error: {error_message}"[: w - 1].ljust(w - 1),
+                error_pair,
+            )
+            start_line = error_start_line + 1
+        except curses.error:
+            start_line = error_start_line  # Could not draw error, proceed
     else:
-        start_line = 1
+        start_line = error_start_line
 
+    # --- File/Directory Listing ---
     display_offset = 0
-    displayable_lines = h - start_line - 2
+    # Number of lines available for items (header, error (if any), instructions, status bar)
+    displayable_lines = (
+        h - start_line - (1 if instruction_line > 0 else 0) - 1
+    )  # -1 for status bar
     if displayable_lines < 0:
         displayable_lines = 0
 
@@ -143,41 +140,154 @@ def display_files(
     for i, item in enumerate(items):
         if i < display_offset:
             continue
+
+        # Calculate actual line number on screen
         line_num_abs = start_line + (i - display_offset)
-        if line_num_abs >= instruction_line:
+        # Ensure we don't draw over instructions or status bar
+        if line_num_abs >= instruction_line and instruction_line > 0:
             break
+        if line_num_abs >= h - 1:
+            break  # Stop before status bar line
 
         display_name = item["name"]
-        if item["is_dir"]:
+        is_dir = item["is_dir"]
+        if is_dir:
             display_name += "/"
 
         path_is_effectively_selected = is_effectively_selected(
             item["path"], selection_roots, explicit_exclusions
         )
-        prefix = "[*] " if path_is_effectively_selected else "[ ] "
 
-        line_str = f"{prefix}{display_name}"
-        try:
-            if i == current_selection_idx:
-                stdscr.addstr(line_num_abs, 0, line_str[: w - 1], curses.A_REVERSE)
+        # Determine style based on selection and type
+        item_style = curses.A_NORMAL
+        if i == current_selection_idx:  # Highlighted item
+            if is_dir:
+                item_pair = theme_manager.get_pair("item_selected_dir")
             else:
-                stdscr.addstr(line_num_abs, 0, line_str[: w - 1])
+                item_pair = theme_manager.get_pair("item_selected")
+            item_style = (
+                curses.A_REVERSE
+            )  # Often themes define selected bg/fg, reverse might not be needed
+            # Or, themes can define specific "selected_*" pairs
+        else:  # Not highlighted
+            if is_dir:
+                item_pair = theme_manager.get_pair("item_dir")
+            else:
+                item_pair = theme_manager.get_pair("item_file")
+
+        # Selection marker
+        if path_is_effectively_selected:
+            marker = "[*] "
+            marker_pair = theme_manager.get_pair("item_selection_marker_selected")
+        else:
+            marker = "[ ] "
+            marker_pair = theme_manager.get_pair("item_selection_marker_unselected")
+
+        line_str_name = f"{display_name}"
+
+        try:
+            # Draw selection marker
+            stdscr.addstr(line_num_abs, 0, marker, marker_pair)
+            # Draw item name
+            # Ensure enough space for the marker before drawing the name
+            stdscr.addstr(
+                line_num_abs,
+                len(marker),
+                line_str_name[: w - 1 - len(marker)],
+                item_pair | item_style,
+            )
+            # Clear rest of the line with the item's base background (if not selected) or app background
+            # This prevents visual artifacts if item_pair has a different background than app_background
+            # This is a bit tricky. If item_pair has its own bg, clearing with app_background might look odd.
+            # For now, let's assume item_pair's bg is what we want for the whole line segment.
+            # Or, if item_style is A_REVERSE, it handles the background for the selected part.
+            # A simpler approach: pad the string with spaces and let addstr handle it.
+            full_line_display = (marker + line_str_name)[: w - 1].ljust(w - 1)
+            # Re-draw with combined attributes if selected for full line effect
+            if i == current_selection_idx:
+                stdscr.addstr(
+                    line_num_abs, 0, marker, marker_pair | item_style
+                )  # Apply style to marker too
+                stdscr.addstr(
+                    line_num_abs,
+                    len(marker),
+                    line_str_name[: w - 1 - len(marker)],
+                    item_pair | item_style,
+                )
+                # Clear rest of line with selected style
+                remaining_len = (
+                    w - 1 - len(marker) - len(line_str_name[: w - 1 - len(marker)])
+                )
+                if remaining_len > 0:
+                    stdscr.addstr(" " * remaining_len, item_pair | item_style)
+
+            else:  # Not selected, draw marker and name separately
+                stdscr.addstr(line_num_abs, 0, marker, marker_pair)
+                stdscr.addstr(
+                    line_num_abs,
+                    len(marker),
+                    line_str_name[: w - 1 - len(marker)],
+                    item_pair,
+                )
+                # Clear rest of line with default item background or app background
+                default_bg_pair = (
+                    theme_manager.get_pair("item_default")
+                    if not is_dir
+                    else theme_manager.get_pair("item_dir")
+                )
+                # If item_pair has specific bg, use it, else use app_background
+                # This part is complex to get perfect without knowing theme structure well.
+                # Simplest for now: rely on stdscr.bkgd and ensure elements draw fg only if bg is "default"
+                # Or, ensure elements draw their full bg.
+                # Let's try padding with the item's pair.
+                current_text_len = len(marker) + len(
+                    line_str_name[: w - 1 - len(marker)]
+                )
+                if current_text_len < w - 1:
+                    stdscr.addstr(
+                        line_num_abs,
+                        current_text_len,
+                        " " * (w - 1 - current_text_len),
+                        item_pair,
+                    )
+
+        except curses.error:
+            pass  # Terminal too small
+
+    if (
+        not items
+        and not error_message
+        and start_line < (instruction_line if instruction_line > 0 else h - 1)
+    ):
+        try:
+            stdscr.addstr(
+                start_line,
+                2,
+                "(Directory is empty or not accessible)",
+                theme_manager.get_pair("item_default"),
+            )
         except curses.error:
             pass
 
-    if not items and not error_message and start_line < instruction_line:
-        stdscr.addstr(start_line, 2, "(Directory is empty or not accessible)")
-
-    stdscr.refresh()
+    # stdscr.refresh() # Refresh is called in the main loop after status bar
 
 
 def tui_main(stdscr, initial_path):
-    keybindings.load_keybindings()
+    # --- Initialize Curses and Theming ---
+    curses.curs_set(0)  # Hide cursor
+    stdscr.keypad(True)  # Enable special keys
 
-    curses.curs_set(0)
-    stdscr.keypad(True)
-    curses.start_color()
-    curses.init_pair(1, curses.COLOR_RED, curses.COLOR_BLACK)
+    theme_manager.init_curses_colors()  # Initialize color system (must be after start_color/curses.initscr)
+    if not theme_manager.load_theme("default_theme.json"):  # Load your default theme
+        # Fallback or error handling if theme loading fails
+        print("CRITICAL: Default theme could not be loaded. Exiting.")
+        return
+
+    # Apply initial background for the whole screen
+    stdscr.bkgd(" ", theme_manager.get_pair("app_background"))
+    # --- End Initialization ---
+
+    keybindings.load_keybindings()  # Load keybindings
 
     current_path = os.path.abspath(initial_path)
     items, error_msg = get_dir_contents(current_path)
@@ -188,6 +298,7 @@ def tui_main(stdscr, initial_path):
     status_message = ""
 
     while True:
+        stdscr.erase()  # Clear screen at the start of each loop iteration
         display_files(
             stdscr,
             current_path,
@@ -197,14 +308,27 @@ def tui_main(stdscr, initial_path):
             explicit_exclusions,
             error_msg,
         )
-        if status_message:
-            h, w = stdscr.getmaxyx()
-            stdscr.move(h - 1, 0)
-            stdscr.clrtoeol()
-            stdscr.addstr(h - 1, 0, status_message[: w - 1])
-            stdscr.refresh()
-            status_message = ""
-            error_msg = None
+
+        # --- Status Bar ---
+        status_bar_pair = theme_manager.get_pair("status_bar")
+        h, w = stdscr.getmaxyx()
+        current_status_text = (
+            status_message
+            if status_message
+            else f"Items: {len(items)} | Selected Roots: {len(selection_roots)}"
+        )
+        try:
+            if h > 1:  # Ensure there's a line for status bar
+                stdscr.addstr(
+                    h - 1, 0, current_status_text[: w - 1].ljust(w - 1), status_bar_pair
+                )
+        except curses.error:
+            pass
+
+        stdscr.refresh()  # Refresh the screen once all elements are drawn
+
+        status_message = ""  # Clear status message for next iteration
+        error_msg = None  # Clear error message for next iteration
 
         raw_key = stdscr.getch()
         effective_action = None
@@ -225,11 +349,9 @@ def tui_main(stdscr, initial_path):
                 current_selection_idx = (current_selection_idx - 1 + len(items)) % len(
                     items
                 )
-            error_msg = None
         elif effective_action == keybindings.ACTION_NAVIGATE_DOWN:
             if items:
                 current_selection_idx = (current_selection_idx + 1) % len(items)
-            error_msg = None
         elif effective_action == keybindings.ACTION_ENTER_DIRECTORY:
             if (
                 items
@@ -237,64 +359,58 @@ def tui_main(stdscr, initial_path):
                 and items[current_selection_idx]["is_dir"]
             ):
                 new_path_candidate = items[current_selection_idx]["path"]
-                _, test_err = get_dir_contents(new_path_candidate)
+                temp_items, test_err = get_dir_contents(
+                    new_path_candidate
+                )  # Store items to check if dir is accessible
                 if not test_err:
                     current_path = new_path_candidate
-                    items, error_msg = get_dir_contents(current_path)
+                    items = temp_items  # Use the already fetched items
                     current_selection_idx = 0
                 else:
-                    error_msg = test_err
-            else:
-                error_msg = None
+                    error_msg = test_err  # Show error if dir not accessible
+            # else: error_msg = None # No error if trying to enter file
         elif effective_action == keybindings.ACTION_PARENT_DIRECTORY:
             parent_path = os.path.dirname(current_path)
             if parent_path != current_path:
                 current_path = parent_path
                 items, error_msg = get_dir_contents(current_path)
                 current_selection_idx = 0
-            error_msg = None
         elif effective_action == keybindings.ACTION_TOGGLE_SELECT:
             if items and 0 <= current_selection_idx < len(items):
-                item_path = os.path.normpath(
-                    items[current_selection_idx]["path"]
-                )  # Normalize for consistency
+                item_path = os.path.normpath(items[current_selection_idx]["path"])
                 currently_selected_eff = is_effectively_selected(
                     item_path, selection_roots, explicit_exclusions
                 )
-
-                if currently_selected_eff:  # Currently [*], so deselecting
-                    if item_path in selection_roots:  # It's a root
+                if currently_selected_eff:
+                    if item_path in selection_roots:
                         selection_roots.remove(item_path)
-                        explicit_exclusions.discard(item_path)  # Ensure consistency
-                    else:  # Implicitly selected
+                        explicit_exclusions.discard(item_path)
+                    else:
                         explicit_exclusions.add(item_path)
-                else:  # Currently [ ], so selecting
-                    if item_path in explicit_exclusions:  # Was an exclusion
-                        explicit_exclusions.remove(
-                            item_path
-                        )  # No longer excluded (becomes implicitly selected if ancestor root exists)
-                    else:  # Genuinely unselected
+                else:
+                    if item_path in explicit_exclusions:
+                        explicit_exclusions.remove(item_path)
+                    else:
                         selection_roots.add(item_path)
-                        explicit_exclusions.discard(
-                            item_path
-                        )  # New root overrides exclusion status for itself
-            error_msg = None
+                        explicit_exclusions.discard(item_path)
         elif effective_action == keybindings.ACTION_GENERATE_OUTPUT:
             if not selection_roots:
                 status_message = "No selection roots. Use 'Select' key to mark items."
             else:
-                h, w = stdscr.getmaxyx()
                 generating_msg = "Generating output... please wait."
+                # Display generating message in status bar temporarily
                 try:
-                    stdscr.addstr(
-                        h // 2,
-                        (w - len(generating_msg)) // 2,
-                        generating_msg,
-                        curses.A_REVERSE,
-                    )
-                except:
-                    stdscr.addstr(h - 1, 0, generating_msg, curses.A_REVERSE)
-                stdscr.refresh()
+                    if h > 1:
+                        stdscr.addstr(
+                            h - 1,
+                            0,
+                            generating_msg[: w - 1].ljust(w - 1),
+                            theme_manager.get_pair("status_bar") | curses.A_BOLD,
+                        )
+                    stdscr.refresh()
+                except curses.error:
+                    pass
+
                 output_filename = "output.txt"
                 status_message = generate_output_from_selection(
                     selection_roots, explicit_exclusions, output_filename
@@ -302,8 +418,7 @@ def tui_main(stdscr, initial_path):
                 items, error_msg = get_dir_contents(current_path)  # Refresh view
         elif effective_action is None and raw_key == 27:
             pass
-        else:
-            error_msg = None
+        # else: error_msg = None # No error for unmapped keys
 
         if not items:
             current_selection_idx = 0
