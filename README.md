@@ -72,7 +72,7 @@ Once installed, the command `prompt-gen` will be available in your terminal.
 
 - **Run with a specific initial path:**
   ```bash
-  prompt-gen /path/to/your/project
+  prompt-gen/path/to/your/project
   ```
 
 The TUI will launch, allowing you to:
