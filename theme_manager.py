@@ -155,18 +155,18 @@ def load_theme(theme_filepath="default_theme.json"):
 
     # Fallback default element definitions if theme is missing or elements are missing
     default_elements = {
-        "app_background": {"fg": "white", "bg": "default"},  # Use terminal default bg
-        "header": {"fg": "black", "bg": "white"},
-        "instructions": {"fg": "yellow", "bg": "default"},
+        "app_background": {"fg": "white", "bg": "black"},
+        "header": {"fg": "white", "bg": "black"},
+        "instructions": {"fg": "yellow", "bg": "black"},
         "status_bar": {"fg": "black", "bg": "green"},
         "error_message": {"fg": "white", "bg": "red"},
-        "item_default": {"fg": "white", "bg": "default"},
-        "item_dir": {"fg": "blue", "bg": "default"},
-        "item_file": {"fg": "white", "bg": "default"},
-        "item_selected": {"fg": "black", "bg": "yellow"},
-        "item_selected_dir": {"fg": "white", "bg": "blue"},
-        "item_selection_marker_selected": {"fg": "green", "bg": "default"},
-        "item_selection_marker_unselected": {"fg": "bright_black", "bg": "default"},
+        "item_default": {"fg": "white", "bg": "black"},
+        "item_dir": {"fg": "blue", "bg": "black"},
+        "item_file": {"fg": "white", "bg": "black"},
+        "item_selected": {"fg": "white", "bg": "black"},
+        "item_selected_dir": {"fg": "white", "bg": "black"},
+        "item_selection_marker_selected": {"fg": "white", "bg": "black"},
+        "item_selection_marker_unselected": {"fg": "white", "bg": "black"},
     }
 
     elements_to_style = theme_data.get("elements", default_elements)
