@@ -3,16 +3,16 @@
   "author": "Prompt-Gen",
   "elements": {
     "app_background": { "fg": "white", "bg": "black" },
-    "header": { "fg": "black", "bg": "cyan" },
+    "header": { "fg": "white", "bg": "black" },
     "instructions": { "fg": "yellow", "bg": "black" },
     "status_bar": { "fg": "black", "bg": "green" },
     "error_message": { "fg": "white", "bg": "red" },
     "item_default": { "fg": "white", "bg": "black" },
-    "item_dir": { "fg": "bright_blue", "bg": "black" },
+    "item_dir": { "fg": "blue", "bg": "black" },
     "item_file": { "fg": "white", "bg": "black" },
-    "item_selected": { "fg": "black", "bg": "bright_yellow" },
-    "item_selected_dir": { "fg": "white", "bg": "blue" },
-    "item_selection_marker_selected": { "fg": "green", "bg": "black" },
-    "item_selection_marker_unselected": { "fg": "bright_black", "bg": "black" }
+    "item_selected": { "fg": "white", "bg": "black" },
+    "item_selected_dir": { "fg": "white", "bg": "black" },
+    "item_selection_marker_selected": { "fg": "white", "bg": "black" },
+    "item_selection_marker_unselected": { "fg": "white", "bg": "black" }
   }
 }
